@@ -23,7 +23,7 @@ torch.set_num_threads(cfg.num_threads)
 dump_cfg(cfg)
 # Repeat for different random seeds
 test_data = None
-# 设置seed
+# Set random seed
 from GraphLab.loader import create_dataset, create_loader
 from GraphLab.logger import create_logger, setup_printing
 from GraphLab.model_builder import create_model
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
 
     datasets = create_dataset()
-    print("创建数据集完成，开始创建loader")
+    print("Dataset created; creating data loaders")
     for i in range(args.repeat):
         set_run_dir(cfg.out_dir)
         setup_printing()

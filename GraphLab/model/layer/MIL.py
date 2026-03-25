@@ -49,7 +49,7 @@ def MIL(x, input_dim, hidden_dim, n_clusters, layer_num, epochs=10):
     model = ClusterThenMlp(input_dim=input_dim, hidden_dim=hidden_dim, n_clusters=n_clusters, layer_num=layer_num)
     if os.path.exists(pre_train):
         model.load_state_dict(torch.load(pre_train))
-        # print("加载mil的预训练参数以便进一步训练")
+        # print("Load MIL pretrained weights for finetuning")
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     if x.requires_grad:
         for epoch in range(epochs):
@@ -79,7 +79,7 @@ def MIL(x, input_dim, hidden_dim, n_clusters, layer_num, epochs=10):
         x = model.transform(output)
         # print(f'Testing ...    Accuracy: {acc}  Loss: {loss}')
 
-    # 保存模型
+    # Save checkpoint
     torch.save(model.state_dict(), '/data/yuanyz/HccGraph/Run/configs/mil_model.pth')
 
     return x

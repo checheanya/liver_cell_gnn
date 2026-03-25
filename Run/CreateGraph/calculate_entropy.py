@@ -10,13 +10,13 @@ import numpy as np
 plt.rcParams.update({'font.size': 20})
 def calculate_entropy(coords):
     """
-    计算二维坐标的熵
-    :param coords: N x 2 的二维坐标数组
-    :return: 二维熵值
+    Compute entropy of 2D coordinates.
+    :param coords: N x 2 array of 2D coordinates
+    :return: 2D entropy value
     """
     hist_2d, x_edges, y_edges = np.histogram2d(coords[:, 0], coords[:, 1], bins=4)
-    hist_2d = hist_2d / np.sum(hist_2d)  # 归一化
-    entropy = -np.sum(hist_2d * np.log(hist_2d + 1e-10))  # 计算熵
+    hist_2d = hist_2d / np.sum(hist_2d)  # Normalize
+    entropy = -np.sum(hist_2d * np.log(hist_2d + 1e-10))  # Entropy
     return entropy
 
 def find_entropy_differences(wsi_path, data_path, patient_label):
@@ -141,40 +141,40 @@ def compare_entropy_mannwhitney(high_risk_entropies, low_risk_entropies):
 #     plt.savefig('entropy_comparison_side_by_side.png')  # Save the image
 #     plt.show()  # Show the image
 #
-#     # 设置总体图形大小
+#     # Overall figure size
 #     plt.figure(figsize=(7, 7))
 #     plt.rcParams.update({'font.size': 20})
 #
-#     # KDE图的子图
+#     # KDE subplot
 #     ax_kde = plt.subplot(1, 1, 1)
 #
-#     # 分别获取高风险组和低风险组的数据
+#     # High- and low-risk group data
 #     high_risk_data = combined_data[combined_data['Group'] == 'High Risk']['Entropy'].values
 #     low_risk_data = combined_data[combined_data['Group'] == 'Low Risk']['Entropy'].values
 #
-#     # 对高风险组和低风险组分别计算KDE并归一化
+#     # KDE and normalize per group
 #     for risk_data, color, label in zip([high_risk_data, low_risk_data], ["#DDA0DD", "#ADD8E6"], ['High', 'Low']):
-#         # 计算KDE
+#         # KDE
 #         density = stats.gaussian_kde(risk_data)
 #
-#         # 获取密度值
-#         x = np.linspace(0, 1, 1000)  # 因为数据已经归一化，x轴范围设为0-1
+#         # Density values
+#         x = np.linspace(0, 1, 1000)  # Data normalized; x in [0, 1]
 #         density_values = density(x)
 #
-#         # 归一化
+#         # Normalize
 #         normalized_density_values = density_values / np.max(density_values)
 #
-#         # 绘制KDE曲线
+#         # Plot KDE curves
 #         ax_kde.plot(x, normalized_density_values, color=color, alpha=0.5, label=f'{label} Risk')
 #         ax_kde.fill_between(x, normalized_density_values, color=color, alpha=0.5)
 #
 #
-#     ax_kde.set_xlim(0, 1)  # 设置x轴的范围为0到1
+#     ax_kde.set_xlim(0, 1)  # x-axis [0, 1]
 #     ax_kde.set_xticks([0, 0.5, 1])
-#         # 设置刻度格式
+#         # Tick format
 #     ax_kde.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 #     ax_kde.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
-#     ax_kde.set_ylim(0, 1)  # 设置y轴的范围为0到1
+#     ax_kde.set_ylim(0, 1)  # y-axis [0, 1]
 #
 #     plt.tight_layout()
 #     # plt.savefig("kdeplot_importance_value.png", dpi=600)

@@ -20,9 +20,9 @@ def cross_entropy_loss(y_pred, y_true):
 
 
 def log_likelihood_loss(y_true, y_pred):
-    # 计算交叉熵损失
+    # NLL / cross-entropy style loss
     losses = torch.nn.functional.nll_loss(torch.log(y_pred), y_true)
-    # 计算平均损失
+    # Mean over batch
     return losses.mean()
 
 
@@ -73,7 +73,7 @@ def compute_loss(model, pred, true):
             cfg.model.loss_fun))
 
 
-# cpu版本
+# CPU variant (commented out)
 # def CoxLoss(hazard_pred=None, labels=None, device=None):
 #     survtime = labels[:, 0]
 #     censor = labels[:, 1]
@@ -97,9 +97,9 @@ def CoxLoss(hazard_pred=None, labels=None, device=None):
     censor = labels[:, 1]
     current_batch_len = len(survtime)
 
-    # 创建 R 矩阵
+    # Risk set matrix R
     R_mat = np.zeros([current_batch_len, current_batch_len], dtype=int)
-    # 创建 DeltaT 矩阵
+    # Time-difference matrix Delta T
     DeltaT_mat = np.zeros([current_batch_len, current_batch_len])
 
     for i in range(current_batch_len):
@@ -113,13 +113,13 @@ def CoxLoss(hazard_pred=None, labels=None, device=None):
     theta = hazard_pred.reshape(-1)
     exp_theta = torch.exp(theta)
 
-    # 基本的 Cox 损失
+    # Standard Cox partial likelihood term
     adjusted_loss_cox = -torch.mean((theta - torch.log(torch.sum(exp_theta * R_mat, dim=1))) * censor)
-    # 使用 DeltaT_mat 调整的 Cox 损失
+    # DeltaT-weighted Cox term
     weighted_loss_cox = -torch.mean(
         (theta - torch.log(torch.sum(exp_theta * R_mat / (1 + torch.abs(DeltaT_mat)), dim=1))) * censor)
 
-    # 将两个损失相加
+    # Sum both Cox terms
     total_loss = adjusted_loss_cox + weighted_loss_cox
 
     return total_loss
@@ -136,33 +136,33 @@ def DeepSurvLoss(risk_pred, y, e):
 
 def TransformLabel(y):
     '''
-    :param y: 代表了生存/复发时间, censored
-    :return: 返回survival time和 censored
+    :param y: Columns [time, event/censoring indicator]
+    :return: Binned time tensor and observation mask
     '''
     survtime = y[:, 0]
     obs = y[:, 1]
     n = y.shape[0]
 
-    # 初始化一个全零的tensor
+    # Zero-initialized time bins
     new_time = torch.zeros((n, 5)).to(y.device)
 
-    # 对于未审查的样本，设置对应的标签
+    # Uncensored: set bin from floor(time/25)
     uncensored_mask = (obs > 0)
     uncensored_time = survtime[uncensored_mask]
     uncensored_labels = torch.clamp((uncensored_time / 25).floor(), max=4).long()
     if len(uncensored_labels) is not 0:
         new_time[uncensored_mask, uncensored_labels] = 1
 
-    # 对于审查的样本，设置对应的标签
+    # Censored: set bins from ceil(time/25)
     censored_mask = ~uncensored_mask
     censored_time = survtime[censored_mask]
     censored_labels = torch.clamp((censored_time / 25).ceil(), max=4).long()
 
     if len(censored_labels) is not 0:
-        # 创建一个二维的索引矩阵
+        # Index grid for bin dimensions
         index_matrix = torch.arange(5).unsqueeze(0).expand(len(censored_labels), -1).to(y.device)
 
-        # 创建一个二维的mask，表示每个元素是否应该被设置为1
+        # Mask: bins at or after censoring time
         censored_mask_2d = (index_matrix >= censored_labels.unsqueeze(1))
 
         new_time[censored_mask] = censored_mask_2d.float()
@@ -179,7 +179,7 @@ def L(X, t, EPS=1e-12):
 #     # x: predicted
 #     # y: labels
 #     # obs: 1 observed event (uncensored), 0 unobserved event (right-censored)
-#     # EPS: 防止除以0,导致无穷大
+#     # EPS: avoid log(0)
 #
 #     survtime, obs = TransformLabel(y)
 #     x = F.softmax(x, dim=1).clamp(min=EPS, max=1 - EPS)

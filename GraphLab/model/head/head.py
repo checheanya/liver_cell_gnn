@@ -45,7 +45,7 @@ class GNNGraphHead(nn.Module):
             self.model1 = rnn_layer[cfg.model.rnn_layer](2 * dim_in, dim_in)
             weights = ResNet50_Weights.DEFAULT
             self.model2 = resnet50(weights=weights)
-            # 将模型参数设置为不参与训练
+            # Freeze parameters (no grad)
             for param in self.model2.parameters():
                 param.requires_grad = False
             self.model2.fc = nn.Linear(self.model2.fc.in_features, dim_in)
@@ -65,12 +65,12 @@ class GNNGraphHead(nn.Module):
     def forward(self, batch):
 
         if self.attention_score is not None:
-            # 得到每个节点的注意力分数
+            # Per-node attention scores
             # print(batch.node_feature.shape, batch.node_label.shape)
             # batch.node_att_score, similarity_matrix = self.attention_score(batch.node_feature, batch.node_label)
             batch.node_att_score = self.attention_score(batch.node_feature)
-            # self.similarity_matrices.append(similarity_matrix.detach().cpu().numpy())  # 确保将Tensor从GPU移动到CPU并转换为NumPy数组
-            # 根据注意力分数更新节点的特征
+            # self.similarity_matrices.append(similarity_matrix.detach().cpu().numpy())  # GPU tensor -> NumPy
+            # Update node features from attention
             batch.node_feature = batch.node_feature * batch.node_att_score
 
         if cfg.dataset.transform == 'ego' and cfg.dataset.format != 'dglmulty':

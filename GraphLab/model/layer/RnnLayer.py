@@ -38,8 +38,8 @@ class LSTM_Attention(nn.Module):
 
     def forward(self, x):
         out, _ = self.lstm(x)
-        attention_scores = F.softmax(self.fc(out), dim=-1)  # 计算自注意力权重
-        context_vector = attention_scores * out  # 使用权重和输出相乘，得到上下文向量
+        attention_scores = F.softmax(self.fc(out), dim=-1)  # Attention weights
+        context_vector = attention_scores * out  # Weighted context
         return context_vector[-1]
 
 

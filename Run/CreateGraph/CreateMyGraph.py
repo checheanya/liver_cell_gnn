@@ -69,7 +69,7 @@ def polymerization(inTXTData, tr):
         if data.shape[0] == 0:
             continue
         data = data.reset_index(drop=True)
-        # print("之前的数量",len(data))
+        # print("count before", len(data))
         i = 0
         length = data.shape[0]
         while i < length:
@@ -92,16 +92,16 @@ def polymerization(inTXTData, tr):
                     j -= 1
                 j += 1
             i += 1
-        # print("之后的数量",len(data))
+        # print("count after", len(data))
         final_data = pd.concat([final_data, data], axis=0)
     return final_data
 
 
 def get_range_for_every_feature(LabelDataPath):
     """
-    确定所有患者txt表格中每个指标的上下限, 用于后面归一化操作
-    :param LabelDataPath: 保存标记工程的总文件
-    :return: (2 * 41)数据, 第一维为min 第二维为max, 每一列为一个指标
+    Min/max per feature across all patients' TXT tables (for later normalization).
+    :param LabelDataPath: Root folder of labeling projects
+    :return: Array shape (2, 41): row 0 = min, row 1 = max; one column per feature
     """
     Patients = os.listdir(LabelDataPath)
     MinAndMax = np.empty(shape=(2, 41))
@@ -122,10 +122,10 @@ def get_range_for_every_feature(LabelDataPath):
 
 def load_image(LabelDataPath, Patient):
     """
-    加载当前patient对应的细胞标注结果图和细胞核结果图
-    :param LabelDataPath: 保存所有标记结果工程的总文件夹
-    :param Patient: 当前患者编号
-    :return: Numpy数组格式细胞标注图和细胞核标注图
+    Load cell-label and nuclei-label images for the patient.
+    :param LabelDataPath: Root folder of all labeling projects
+    :param Patient: Patient ID
+    :return: NumPy arrays for cell labels and nuclei labels
     """
     Image.MAX_IMAGE_PIXELS = None
     LabeledCellImagePath = os.path.join(LabelDataPath, Patient, Patient + '-CellLabels.png')
@@ -141,10 +141,10 @@ def load_image(LabelDataPath, Patient):
 
 def load_wsi(WSIDataPath, Patient):
     """
-    加载当前patient对应WSI数据
-    :param WSIDataPath: 保存所有患者WSI数据的总文件夹
-    :param Patient: 当前患者编号
-    :return: openslide格式的slide数据，可使用np.array(slide.read_region函数读取图片转化为numpy数组)
+    Load WSI for the patient.
+    :param WSIDataPath: Root folder of all WSI files
+    :param Patient: Patient ID
+    :return: OpenSlide handle; use slide.read_region then np.array(...) for pixels
     """
     path = os.path.join(WSIDataPath, Patient, Patient + '.ndpi')
     slide = openslide.OpenSlide(path)
@@ -155,24 +155,24 @@ def load_wsi(WSIDataPath, Patient):
 
 def find_patch_boxes_new(LabeledCellImage, patch_size=256, ratio=0.1):
     """
-    由细胞标记图像提取细胞种类最多的Patch，
-    :param LabeledCellImage: 细胞标记图像
-    :param patch_size: patch边长
-    :param ratio: patch个数/总面积
+    Select patches with the most diverse cell types from the labeled cell image.
+    :param LabeledCellImage: Cell type label image
+    :param patch_size: Patch side length in pixels
+    :param ratio: patches count / total area (see usage)
     :return:
     """
-    # 分割出前景
+    # Foreground mask
     CellImage = ((LabeledCellImage > 0) * 255).astype('uint8')
     close_kernel = np.ones((50, 50), dtype=np.uint8)
     image_close = cv2.morphologyEx(np.array(CellImage), cv2.MORPH_CLOSE, close_kernel)
     open_kernel = np.ones((50, 50), dtype=np.uint8)
     image_open = cv2.morphologyEx(np.array(image_close), cv2.MORPH_OPEN, open_kernel)
 
-    # 计算总面积
+    # Total foreground area
     image_binary = np.array(image_open > 0, dtype='int')
     S = image_binary.sum()
 
-    # 获得前景的Bounding Box
+    # Foreground bounding box
     contours, _ = cv2.findContours(image_open, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     boundingBoxes = np.array([cv2.boundingRect(c) for c in contours])
 
@@ -184,18 +184,18 @@ def find_patch_boxes_new(LabeledCellImage, patch_size=256, ratio=0.1):
 
     boundingBox = [ymin, xmin, ymax, xmax]
 
-    # 滑窗获得每个patch的BoundingBox坐标
+    # Sliding window: patch bounding boxes
     box_list = []
     for i in np.arange(xmin, xmax - patch_size, patch_size):
         for j in np.arange(ymin, ymax - patch_size, patch_size):
-            # 注意到cv2 x和y坐标颠倒问题
+            # Note: cv2 uses (row, col) vs image x/y
             box = (j, i, j + patch_size, i + patch_size)
             box_list.append(box)
 
-    # 统计每个patch内细胞种类数
+    # Count distinct cell types per patch
     CellTypeNum = []
     for box in box_list:
-        # 这里的x和y就是图像对应的竖直方向和水平方向
+        # Here x/y map to vertical/horizontal image axes
         patch_xmin, patch_ymin, patch_xmax, patch_ymax = box
         patch = LabeledCellImage[patch_xmin: patch_xmax, patch_ymin: patch_ymax]
         CellTypeNum.append(len(np.unique(patch)) - 1)
@@ -208,7 +208,7 @@ def find_patch_boxes_new(LabeledCellImage, patch_size=256, ratio=0.1):
 
     coordinates = coordinates.iloc[: 5000, :4]
 
-    #全部选择
+    # Take top patches only
     SelectedCords = coordinates.iloc[:32, :4]
     if SelectedCords.shape[0] < 32:
         print('Warning: The number of patches is less than 32')
@@ -253,10 +253,10 @@ def find_patch_boxes_new(LabeledCellImage, patch_size=256, ratio=0.1):
 
 def get_origin_image(WSIData, level_dimensions):
     """
-    从slide数据读出降采样level为level_dimensions的RGB图片，输出为numpy数组格式
-    :param WSIData: slide数据
-    :param level_dimensions: 降采样层级，取值[0-8]
-    :return: numpy数组RGB图片
+    Read RGB image at OpenSlide level `level_dimensions` as a NumPy array.
+    :param WSIData: OpenSlide handle
+    :param level_dimensions: Pyramid level index, typically [0-8]
+    :return: NumPy RGB image
     """
     (m, n) = WSIData.level_dimensions[level_dimensions]
     OriginImage = np.array(WSIData.read_region((0, 0), level_dimensions, (m, n)))[:, :, :3]
@@ -267,10 +267,10 @@ def get_origin_image(WSIData, level_dimensions):
 
 def get_cell_coordinate_pixel(CellData, box):
     """
-    将CellData表格中坐标信息转化为当前patch中对应的像素坐标
-    :param CellData: 当前patch中的细胞表格
-    :param box: 当前patch对应的box, 单位为微米
-    :return: 列表格式各细胞对应像素坐标
+    Map CellData centroid coordinates to pixel coordinates in the patch.
+    :param CellData: Cell table for the patch
+    :param box: Patch box in micrometers
+    :return: List of (x, y) pixel coordinates per cell
     """
     CoordinateUm = [list(CellData['Centroid X µm']), list(CellData['Centroid Y µm'])]
     # CoordinatePixelX = ((CoordinateUm[0] - box[1]) / (Ratio * 4)).astype('int')
@@ -286,21 +286,21 @@ def get_cell_coordinate_pixel(CellData, box):
 
 # def generate_graph(CellData, Centroids, Features, PatchSize=1024, k=5, thresh=100):
 #     """
-#     以KNN方式构建图结构
-#     :param Centroids: 图节点的坐标, list
-#     :param Features: 所有节点的特征向量, tensor
-#     :param PatchSize: 当前Patch大小, int
-#     :param k: KNN中K
-#     :param thresh: 超过threshold不再建立边
+#     Build graph with KNN edges.
+#     :param Centroids: Node coordinates, list
+#     :param Features: Node feature tensor
+#     :param PatchSize: Patch size, int
+#     :param k: K in KNN
+#     :param thresh: No edge if distance exceeds this
 #     :return: dgl.graph
 #     """
 #     graph = dgl.DGLGraph()
 #     graph.add_nodes(len(Centroids))
 #
 #     image_size = (PatchSize, PatchSize)
-#     # 设置图节点中心坐标
+#     # Node centroid positions
 #     graph.ndata['centroid'] = torch.FloatTensor(Centroids) * 4
-#     # 设置图节点特征（特征还包括归一化的坐标信息）
+#     # Node features (includes normalized coordinates)
 #     centroids = graph.ndata['centroid']
 #     normalized_centroids = torch.empty_like(centroids)
 #     normalized_centroids[:, 0] = centroids[:, 0] / image_size[0]
@@ -331,10 +331,10 @@ def get_cell_coordinate_pixel(CellData, box):
 #                 name_tensor.append([i + 1])
 #                 Flag = 0
 #         if Flag:
-#             name_tensor.append([7])  # 过滤掉其他可能标注但是未在CellType的细胞，我们归为Other
+#             name_tensor.append([7])  # Unlisted cell types -> Other (index 7)
 #     name_tensor = torch.tensor(name_tensor)
 #     graph.ndata['name'] = name_tensor
-#     # 利用KNN方法构建图
+#     # KNN graph
 #     if Features.shape[0] != 1:
 #         k = min(Features.shape[0] - 1, k)
 #         adj = kneighbors_graph(
@@ -359,20 +359,20 @@ def get_cell_coordinate_pixel(CellData, box):
 #
 # def generate_graph(CellData, Centroids, Features, PatchSize=1024, thresh=100):
 #     """
-#     使用Delaunay三角剖分构建图结构
-#     :param Centroids: 图节点的坐标, list
-#     :param Features: 所有节点的特征向量, tensor
-#     :param PatchSize: 当前Patch大小, int
-#     :param thresh: 超过threshold不再建立边
+#     Build graph with Delaunay triangulation.
+#     :param Centroids: Node coordinates, list
+#     :param Features: Node feature tensor
+#     :param PatchSize: Patch size, int
+#     :param thresh: No edge if distance exceeds this
 #     :return: dgl.graph
 #     """
 #     graph = dgl.DGLGraph()
 #     graph.add_nodes(len(Centroids))
 #
 #     image_size = (PatchSize, PatchSize)
-#     # 设置图节点中心坐标
+#     # Node centroid positions
 #     graph.ndata['centroid'] = torch.FloatTensor(Centroids) * 4
-#     # 设置图节点特征（特征还包括归一化的坐标信息）
+#     # Node features (includes normalized coordinates)
 #     centroids = graph.ndata['centroid']
 #     normalized_centroids = torch.empty_like(centroids)
 #     normalized_centroids[:, 0] = centroids[:, 0] / image_size[0]
@@ -403,11 +403,11 @@ def get_cell_coordinate_pixel(CellData, box):
 #                 name_tensor.append([i + 1])
 #                 Flag = 0
 #         if Flag:
-#             name_tensor.append([7])  # 过滤掉其他可能标注但是未在CellType的细胞，我们归为Other
+#             name_tensor.append([7])  # Unlisted cell types -> Other (index 7)
 #     name_tensor = torch.tensor(name_tensor)
 #     graph.ndata['name'] = name_tensor
 #
-#     # 使用Delaunay三角剖分构建图
+#     # Delaunay graph
 #     tri = Delaunay(centroids.numpy())
 #     for simplex in tri.simplices:
 #         for i in range(3):
@@ -427,19 +427,19 @@ from scipy.spatial.distance import cdist
 
 def generate_graph(CellData, Centroids, Features, PatchSize=1024):
     """
-    使用最小生成树 (MST) 构建图结构
-    :param Centroids: 图节点的坐标, list
-    :param Features: 所有节点的特征向量, tensor
-    :param PatchSize: 当前Patch大小, int
+    Build graph using a minimum spanning tree (MST).
+    :param Centroids: Node coordinates, list
+    :param Features: Node feature tensor
+    :param PatchSize: Patch size, int
     :return: dgl.graph
     """
     graph = dgl.DGLGraph()
     graph.add_nodes(len(Centroids))
 
     image_size = (PatchSize, PatchSize)
-    # 设置图节点中心坐标
+    # Node centroid positions
     graph.ndata['centroid'] = torch.FloatTensor(Centroids)
-    # 设置图节点特征（特征还包括归一化的坐标信息）
+    # Node features (includes normalized coordinates)
     # centroids = graph.ndata['centroid']
 
     normalized_centroids = torch.empty_like(graph.ndata['centroid'])
@@ -474,11 +474,11 @@ def generate_graph(CellData, Centroids, Features, PatchSize=1024):
                 name_tensor.append([i + 1])
                 Flag = 0
         if Flag:
-            name_tensor.append([7])  # 过滤掉其他可能标注但是未在CellType的细胞，我们归为Other
+            name_tensor.append([7])  # Unlisted cell types -> Other (index 7)
     name_tensor = torch.tensor(name_tensor)
     graph.ndata['name'] = name_tensor
 
-    # 使用最小生成树 (MST) 构建图
+    # MST graph
     distances = cdist(centroids.numpy(), centroids.numpy(), metric='euclidean')
     mst = minimum_spanning_tree(distances).tocoo()
     graph.add_edges(mst.row, mst.col)
@@ -486,7 +486,7 @@ def generate_graph(CellData, Centroids, Features, PatchSize=1024):
     return graph
 
 
-# 增加ont-hot编码特征
+# Append one-hot cell-type features
 def concat_one_hot(Features, CellData):
     temp = []
     # print(Features.shape)
@@ -506,25 +506,26 @@ def concat_one_hot(Features, CellData):
 
 def generate_and_save_cell_graphs(box, TXTData, Label, OutPath):
     """
-    对应于每个box, 对于其中的每类细胞都构建一张图, 并保存在Graph文件中
-    :param box: patch坐标单位为um
-    :param TXTData: 医生标记结果导出的TXT表格
-    :param Patient: 当前病患, 在Graph文件夹中建立相应文件夹
+    For each patch box, build one combined cell graph and save to disk.
+    :param box: Patch bounds in micrometers
+    :param TXTData: TXT table exported from pathologist annotations
+    :param Label: Labels dict passed to save_graphs (e.g. survival)
+    :param OutPath: Output directory for this patch (graph files)
     """
-    # 将box内的所有细胞筛选出来
+    # Cells inside the box
     CellINPatch = TXTData[(box[1] < TXTData['Centroid X µm']) & (TXTData['Centroid X µm'] < box[3]) &
                           (box[0] < TXTData['Centroid Y µm']) & (TXTData['Centroid Y µm'] < box[2])]
 
-    # 在这里添加剔除一些不相关细胞的东西
+    # Optionally filter irrelevant cells here
 
     # CellINPatch=polymerization(CellINPatch,5000)
-    # 对于方框内的所有细胞，按照细胞分类分别提取
+    # Cells in the box, grouped by class downstream
     print(CellINPatch.shape)
     CellData = CellINPatch
-    # 一个图中的节点个数要大于5
+    # Proceed if there is at least one cell (original: require >5 nodes)
     if len(CellData) > 0:
         CoordinatePixel = get_cell_coordinate_pixel(CellData, box)
-        # 提取txt表格中的形态学数据（剔除颜色相关数据）
+        # Morphology columns from TXT (exclude color-related columns)
         Features = pd.concat([CellData.iloc[:, 5: 13], CellData.iloc[:, 13:]], axis=1)
         Features['Centroid X µm'] = ((Features['Centroid X µm'] - box[1]) / Ratio / 4).astype('int')
         Features['Centroid Y µm'] = ((Features['Centroid Y µm'] - box[0]) / Ratio / 4).astype('int')
@@ -532,11 +533,11 @@ def generate_and_save_cell_graphs(box, TXTData, Label, OutPath):
         # Features = Features.drop_duplicates(subset=['Centroid X µm', 'Centroid Y µm'], keep='first')
         Features = np.array(Features, dtype='float64')
         # NormalizedFeatures =
-        Features = torch.from_numpy(Features)  # Features要归一化！！！！！
-        # print("one-hot之前",Features.shape,CellData.shape)
-        # 进行one-hot编码
+        Features = torch.from_numpy(Features)  # Features should be normalized
+        # print("before one-hot", Features.shape, CellData.shape)
+        # One-hot encode cell types
         Features = concat_one_hot(Features, CellData)
-        # print("one-hot之后",Features.shape,CellData.shape,len(CoordinatePixel))
+        # print("after one-hot", Features.shape, CellData.shape, len(CoordinatePixel))
         Graph = generate_graph(CellData, CoordinatePixel, Features)
         img = Image.open(OutPath + "/wsi.png")
         img = np.array(img)
@@ -554,7 +555,7 @@ def generate_and_save_cell_graphs(box, TXTData, Label, OutPath):
             quality=100
         )
         print("hello")
-        # 一个图中边的个数要大于5
+        # Original note: require enough edges in the graph
         if Graph.num_edges() > -1:
             GraphName = 'AllCell.bin'
             GraphPath = os.path.join(OutPath, GraphName)
@@ -565,10 +566,10 @@ def generate_and_save_cell_graphs(box, TXTData, Label, OutPath):
 
 def graph_visualize(box, WSIImage, graph):
     """
-    图结构的可视化，用于检查和超参数的选择
-    :param box: patch边界box，微米
-    :param WSIImage: 读入的numpy数组格式的原始图像，降采样率：4
-    :param graph: 要可视化的graph，dgl.graph
+    Visualize graph overlay for inspection and hyperparameter tuning.
+    :param box: Patch bounds in micrometers
+    :param WSIImage: Downsampled WSI as NumPy array (e.g. level 4)
+    :param graph: DGL graph to draw
     """
     boxpixel = (box / Ratio / 4).astype('int')
     image = WSIImage[boxpixel[1]: boxpixel[3], boxpixel[0]: boxpixel[2]]
@@ -581,8 +582,8 @@ def graph_visualize(box, WSIImage, graph):
 
 def show_big_array(array):
     """
-    展示非常大数组图片（避免plt导致python无响应）
-    :param array: 大数组
+    Display a very large array via PIL (avoids matplotlib freezing on huge images).
+    :param array: Image array
     """
     p = Image.fromarray(array)
     p.show()
@@ -607,15 +608,15 @@ def robust_read_csv(file_path, sep='\t'):
 if __name__ == '__main__':
     opt = parse_args()
     print('\n')
-    # 载入数据
-    LabelDataPath = opt.label_data_path  # 保存所有标记结果工程的总文件夹
-    WSIDataPath = opt.WSI_data_path  # 保存所有WSI数据的总文件夹
-    # FollowUpData = pd.read_csv(opt.follow_up_data, sep='\t', engine='python', encoding='utf-8')  # 加载随访数据
+    # Load paths
+    LabelDataPath = opt.label_data_path  # Root of labeling projects
+    WSIDataPath = opt.WSI_data_path  # Root of WSI files
+    # FollowUpData = pd.read_csv(opt.follow_up_data, sep='\t', engine='python', encoding='utf-8')  # Follow-up table
     FollowUpData = robust_read_csv(opt.follow_up_data, sep='\t')
     FollowUpData.dropna(axis=0, how='all')
     # Patients = os.listdir(LabelDataPath)
 
-    # 带区域标记的病人
+    # Patients with region annotations
     Patients = os.listdir(LabelDataPath)
     Patients.sort()
     # FeaturesMinAndMax = np.loadtxt('MinAndMax.csv')
@@ -624,21 +625,21 @@ if __name__ == '__main__':
     for Patient in tqdm(Patients):
         if os.path.exists(os.path.join(result_dataset, Patient)) is False:
             os.makedirs(os.path.join(result_dataset, Patient))
-            # TXTData = load_txt('./txtdata/PCA3', Patient)  # 加载TXT表格
-            TXTData = load_txt(LabelDataPath, Patient)  # 加载TXT表格
-            LabeledCellImage, LabeledNucleiImage = load_image(LabelDataPath, Patient)  # 加载标注图片
-            WSIData = load_wsi(WSIDataPath, Patient)  # 加载WSI数据
+            # TXTData = load_txt('./txtdata/PCA3', Patient)  # Load TXT table
+            TXTData = load_txt(LabelDataPath, Patient)  # Load TXT table
+            LabeledCellImage, LabeledNucleiImage = load_image(LabelDataPath, Patient)  # Load label images
+            WSIData = load_wsi(WSIDataPath, Patient)  # Load WSI
             # WSIImage = get_origin_image(WSIData, level_dimensions=2)
 
             Ratio = float(WSIData.properties['openslide.mpp-x'])
-            # 选择包含细胞种类最多的Patches
+            # Patches with most cell-type diversity
             SelectedPatchBoxes, imgs = find_patch_boxes_new(LabeledCellImage, ratio=Ratio)
             SelectedPatchBoxes = np.array(SelectedPatchBoxes)
 
-            # 构建图结构
+            # Build graphs
             Ratio = float(WSIData.properties['openslide.mpp-x'])
 
-            SelectedPatchBoxesUm = SelectedPatchBoxes * Ratio * 4  # 将像素框转换为实际距离
+            SelectedPatchBoxesUm = SelectedPatchBoxes * Ratio * 4  # Pixel boxes to physical units
             for idx, box in enumerate(SelectedPatchBoxesUm):
                 BoxName = str(box[0]) + '_' + str(box[1])
                 OutPath = os.path.join(result_dataset, Patient, BoxName)
@@ -665,6 +666,6 @@ if __name__ == '__main__':
         else:
             continue
 
-    # 可视化
+    # Visualization (optional)
     # Graph = dgl.load_graphs(os.path.join(OutPath, 'Tumor cells.bin'))[0][0]
     # graph_visualize(box, WSIImage, Graph)

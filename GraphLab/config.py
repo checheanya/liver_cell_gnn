@@ -116,7 +116,7 @@ def set_cfg(cfg):
     # Task: node, edge, graph, link_pred
     cfg.dataset.task = 'node'
 
-    # 是否执行节点级别的任务
+    # Enable node-level auxiliary task (multitasking)
     cfg.dataset.multitasking = False
 
     # Type of task: classification, regression, classification_binary
@@ -221,7 +221,7 @@ def set_cfg(cfg):
     # Whether remove the original node features in the dataset
     cfg.dataset.remove_feature = False
 
-    #dataset的特征选择
+    # Dataset feature column selection offset
     cfg.dataset.feature_dim = 0
 
     # Simplify TU dataset for synthetic tasks
@@ -236,7 +236,7 @@ def set_cfg(cfg):
     # Define label: Table name
     cfg.dataset.label_table = 'none'
 
-    # 子任务的输出维度
+    # Subtask output dimension
     cfg.dataset.subtaskdim = 1
 
     # Define label: Column name
@@ -338,26 +338,26 @@ def set_cfg(cfg):
     cfg.model.thresh = 0.5
 
     cfg.model.use_pairnorm = False
-    # 选择LSTM模型还是GRU模型
+    # Patch encoder: LSTM or GRU
     cfg.model.process_patch = 'LSTM'
 
-    #是否使用attention
+    # Use attention in patch encoder
     cfg.model.attention = False
 
-    # 是否使用聚类
+    # Enable clustering auxiliary loss
     cfg.model.Cluster = True
     cfg.model.Cluster_epoch = 100
     cfg.model.Cluster_layer_num = 2
     cfg.model.Cluster_dim = 64
     cfg.model.n_Cluster = 3
 
-    # 以p_value的概率删除节点
+    # Probability of zeroing a node feature row (regularization)
     cfg.model.p_value = 0.1
 
-    # rnn_layer层的选择
+    # RNN cell type for patch encoder
     cfg.model.rnn_layer = 'LSTM'
 
-    # GRU模型的层数
+    # Number of GRU layers
     cfg.model.layers_gru = 1
 
     # ============== Link/edge tasks only

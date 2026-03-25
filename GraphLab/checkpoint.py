@@ -33,8 +33,8 @@ def load_ckpt(
     model_state_dict = ckpt[MODEL_STATE]
     for param_tensor in model_state_dict:
         print("Model param:", param_tensor)
-        print("Param value size:", model_state_dict[param_tensor].size())  # 打印参数的大小
-        print("Param value:", model_state_dict[param_tensor])  # 打印参数的具体值
+        print("Param value size:", model_state_dict[param_tensor].size())  # Tensor shape
+        print("Param value:", model_state_dict[param_tensor])  # Tensor values
     model.load_state_dict(ckpt[MODEL_STATE])
     if optimizer is not None and OPTIMIZER_STATE in ckpt:
         optimizer.load_state_dict(ckpt[OPTIMIZER_STATE])

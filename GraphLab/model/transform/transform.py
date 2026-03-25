@@ -47,14 +47,14 @@ def ego_nets(graph, radius=2):
             continue
 
         '''
-        ego并不会改变原来节点的编号，所以可以通过编号找到一个ego里面所有节点对应的feature，label等信息拷贝到新的图
+        Ego nets preserve original node IDs, so features and labels can be copied by index into the new graph.
         '''
         feature_map = torch.stack(list(map(lambda node: node_features[node], keys)), dim=0)
         node_label_map = torch.stack(list(map(lambda node: node_label[node], keys)), dim=0)
         patch_id_map = torch.stack(list(map(lambda node: patch_id[node], keys)), dim=0)
 
         '''
-        直接根据ego子图的节点顺序依次添加到graph中即可，因为你是依次放入节点的
+        Append nodes in ego subgraph order; insertion order matches the ego walk order.
         '''
         graph.node_feature = torch.cat((graph.node_feature, feature_map), dim=0)
         graph.node_label = torch.cat((graph.node_label, node_label_map), dim=0)

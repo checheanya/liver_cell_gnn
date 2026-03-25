@@ -255,13 +255,13 @@ class Logger(object):
         logging.info('{}: {}'.format(self.name, stats))
         # json
         dict_to_json(stats, '{}/stats.json'.format(self.out_dir))
-        # 假设 self._pred 是一个张量列表
+        # Assume self._pred is a list of tensors
         # pred_array = np.concatenate([p.cpu().numpy() for p in self._pred])
         #
-        # # 转换为Pandas DataFrame
+        # # To pandas DataFrame
         # pred_df = pd.DataFrame(pred_array)
         #
-        # # 保存为CSV文件
+        # # Save as CSV
         # pred_df.to_csv(self.out_dir + '/' + str(cur_epoch) + '_pred_array.csv', index=False)
         # tensorboard
         if cfg.tensorboard_each_run:

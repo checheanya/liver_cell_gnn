@@ -32,7 +32,7 @@ class GATIDConvLayer(MessagePassing):
         self.dropout = dropout
 
         self.weight = Parameter(torch.Tensor(in_channels, out_channels))
-        # 不同的参数
+        # Per cell-type weights (7 types)
         self.weight_id = nn.ParameterList(Parameter(torch.Tensor(in_channels, out_channels)) for _ in
                           range(7))
         self.att = Parameter(torch.Tensor(1, heads, 2 * out_channels))
@@ -126,7 +126,7 @@ class GeneralIDConvLayer(MessagePassing):
         self.normalize = cfg.gnn.normalize_adj
 
         self.weight = Parameter(torch.Tensor(in_channels, out_channels))
-        # 不同的参数
+        # Per cell-type weights (7 types)
         self.weight_id = nn.ParameterList([nn.Parameter(torch.Tensor(in_channels, out_channels)) for _ in range(7)])
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels))
@@ -168,11 +168,11 @@ class GeneralIDConvLayer(MessagePassing):
     def forward(self, x, edge_index, id=None, node_label=None, patch_id=None, edge_weight=None):
         '''
 
-        :param x: 节点的特征向量二维
-        :param edge_index: 边的索引
-        :param id: 中心节点的索引列表
-        :param node_label: 每个节点的标签
-        :param edge_weight: 边的权值
+        :param x: Node features [N, F]
+        :param edge_index: Edge indices [2, E]
+        :param id: Indices of center nodes (ego), optional
+        :param node_label: Per-node class label
+        :param edge_weight: Edge weights
         :return:
         '''
 
@@ -242,7 +242,7 @@ class GeneralIDConv(nn.Module):
         else:
             batch.node_feature = self.model(batch.node_feature, batch.edge_index, id=None, node_label=batch.node_label)
 
-        # 保存batch信息到文件
+        # Optional: dump batch to file for debug
         # torch.save(batch, 'batch.pt')
         return batch
 

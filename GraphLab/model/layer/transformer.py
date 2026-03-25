@@ -38,7 +38,7 @@ class Transformer(nn.Module):
         self.embedding = nn.Linear(input_size, hidden_size)
         self.positional_encoding = PositionalEncoding(hidden_size, dropout_rate)
 
-        # 使用PyTorch的内置TransformerEncoder模块
+        # PyTorch TransformerEncoder
         self.encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model=hidden_size, nhead=num_heads, dim_feedforward=feedforward_size, dropout=dropout_rate),
             num_layers=num_layers
@@ -50,15 +50,15 @@ class Transformer(nn.Module):
         src = self.embedding(src)
         src = self.positional_encoding(src)
 
-        # 转换为 (S, N, E) 格式
+        # (N, S, E) -> (S, N, E)
         src = src.permute(1, 0, 2)
 
-        # 使用TransformerEncoder
+        # TransformerEncoder forward
         output = self.encoder(src, src_key_padding_mask=src_mask)
 
-        # 恢复为 (N, S, E) 格式
+        # (S, N, E) -> (N, S, E)
         output = output.permute(1, 0, 2)
 
         output = self.output_layer(output)
-        output = torch.mean(output, dim=1, keepdim=True)  # 按第一维求平均，保留第一维
+        output = torch.mean(output, dim=1, keepdim=True)  # Mean over sequence dim
         return output

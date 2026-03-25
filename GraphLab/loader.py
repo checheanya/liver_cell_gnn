@@ -52,7 +52,7 @@ COLLATE_FN = {
 }
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-# 定义预处理转换
+# Image preprocessing pipeline
 PreprocessImg = Compose([
     Resize((224, 224)),
     ToTensor(),
@@ -278,7 +278,7 @@ def stack_patch(id, num):
 count = 0
 
 
-# 定义替换函数
+# Randomly zero rows (dropout on node features)
 def replace_tensor(x):
     if random.random() < cfg.model.p_value:
         return torch.zeros_like(x)
@@ -290,7 +290,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
-# 将处理单个图的部分封装为一个函数
+# Single-graph processing helper for pooling
 def process_graphs(graphs, labels, patch_path):
     temp_graphs = []
     for ind, graph_info in enumerate(graphs):
@@ -316,7 +316,7 @@ def process_graphs(graphs, labels, patch_path):
                               graph_label=graph_labels, patch_id=patch_id, path=path, eid=eid)
     return graph
 
-# 使用 ThreadPoolExecutor 并发地处理图
+# Concurrent graph processing (ProcessPoolExecutor)
 def parallel_processing(Graphs, labels, patch_path):
     with ProcessPoolExecutor(max_workers=4) as executor:
         #func = partial(process_graphs, labels=labels, patch_path=patch_path)
@@ -329,8 +329,8 @@ def parallel_processing(Graphs, labels, patch_path):
 def transform_to_DeepSnap(Graphs, labels=None, imgs=None, Flag=1, form='train', patch_path=[]):
     '''
 
-    :param Graphs: 表示带有标签的DGL图
-    :Flag: 2代表dglmulty  1代表 dglbatch   0代表dgl不需要labels 3代表LoadImg
+    :param Graphs: DGL graphs with labels
+    :param Flag: 2=dglmulty, 1=dglbatch, 0=dgl without labels, 3=LoadImg
     :return: DeepSnap Graph
     '''
 
@@ -344,7 +344,7 @@ def transform_to_DeepSnap(Graphs, labels=None, imgs=None, Flag=1, form='train', 
         T = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize((224, 224)),
-            # 归一化
+            # ImageNet normalization
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
         with open(path + '/no.pickle', 'wb') as f:
@@ -405,7 +405,7 @@ def transform_to_DeepSnap(Graphs, labels=None, imgs=None, Flag=1, form='train', 
     elif Flag == 2:
         DeepSnap_Graph = []
         index = 0
-        # 示例：使用 process_graphs_concurrent 函数处理图列表
+        # Example: parallel_processing(Graphs, labels, patch_path)
         # DeepSnap_Graph = parallel_processing(Graphs, labels, patch_path)
         from tqdm import  tqdm
         path = os.path.join('/data0/yuanyz/NewGraph', cfg.dataset.name, form)
@@ -424,9 +424,9 @@ def transform_to_DeepSnap(Graphs, labels=None, imgs=None, Flag=1, form='train', 
 
                 nodes = temp_graphs.nodes().tolist()
                 edges = temp_graphs.edges()
-                # 创建一个新的networkx DiGraph对象
+                # Build networkx DiGraph
                 G = nx.DiGraph()
-                # 添加节点和边
+                # Nodes and directed edges
                 G.add_nodes_from(nodes)
                 G.add_edges_from(list(zip(edges[0].tolist(), edges[1].tolist())))
                 #src,dst = temp_graphs.edges()
@@ -435,7 +435,7 @@ def transform_to_DeepSnap(Graphs, labels=None, imgs=None, Flag=1, form='train', 
                 # if form!='test':
                 #     for i in range(int(1/cfg.model.p_value)+1):
                 #         node_features = temp_graphs.ndata['feat']
-                #         # 把每一行替换成全为0的tensor
+                #         # Replace each row with zeros (feature dropout)
                 #         node_features = torch.stack(list(map(replace_tensor, node_features)))
                 #         node_labels = temp_graphs.ndata['name']
                 #         patch_id = temp_graphs.ndata['patch_id']
@@ -513,16 +513,16 @@ def transform_to_DeepSnap(Graphs, labels=None, imgs=None, Flag=1, form='train', 
         from tqdm import tqdm
         for graph_info in tqdm(Graphs):
             # graph_info[0][0]=graph_info[0][0].subgraph(range(min(50,graph_info[0][0].number_of_nodes())))
-            # 获取出度并筛选
+            # Out-degree filtering (commented)
             # out_degrees = graph_info[0][0].out_degrees().flatten()
             # top_512_nodes = out_degrees.topk(min(512,graph_info[0][0].number_of_nodes()), sorted=True)[1]
             # graph_info[0][0] = graph_info[0][0].subgraph(top_512_nodes)
             # # print(top_50_nodes)
-            # # 选择子图
+            # # Subgraph selection
             # print(graph_info[0][0])
-            # 计算图中每个节点的度数
+            # Per-node degrees
             # degrees = graph_info[0][0].in_degrees().float().clamp(min=1)
-            # # 对图进行归一化
+            # # Normalize by degree
             # graph_info[0][0].ndata['norm'] = torch.reciprocal(degrees)
             # graph_info[0][0].apply_nodes(lambda nodes: {'norm': degrees[nodes] * graph_info[0][0].ndata['norm'][nodes]})
             # print(graph_info)
@@ -578,7 +578,7 @@ def create_dataset(splits=None):
                 graphs = transform_to_DeepSnap(graphs, labels=labels, Flag=Flag, form=form, patch_path=patch_path)
         elif Flag == 4:
             graphs = load_dataset(form)
-        print("加载{}完成".format(form))
+        print("Finished loading split: {}".format(form))
         # Filter graphs
         time2 = time.time()
         min_node = filter_graphs()
@@ -612,12 +612,12 @@ def create_dataset(splits=None):
     # for i in range(1, len(datasets)):
     #     datasets[i].edge_negative_sampling_ratio = 1
 
-    print("加载数据集完成")
+    print("Dataset loading complete")
     # Transform each split dataset
     time4 = time.time()
     datasets = transform_after_split(datasets)
     set_dataset_info(datasets)
-    print("Ego变换完成")
+    print("Ego transform complete")
     time5 = time.time()
     logging.info('Load: {:.4}s, Before split: {:.4}s, '
                  'Split: {:.4}s, After split: {:.4}s'.format(
@@ -674,7 +674,7 @@ def load_dgl(form=None):
         return None
     patients = os.listdir(dataset_dir)  # CellGraph/patient
     for i in range(len(patients)):
-        path = os.path.join(dataset_dir, patients[i])  # 所有patch所在的路径
+        path = os.path.join(dataset_dir, patients[i])  # Directory of patches for this patient
         if os.path.isfile(path):
             continue
         patches = os.listdir(path)
@@ -761,7 +761,7 @@ def load_dgl_Multy(form=None):
     for i in tqdm(range(len(patients))):
         # if i>1:
         #     break
-        path = os.path.join(dataset_dir, patients[i])  # 所有patch所在的路径
+        path = os.path.join(dataset_dir, patients[i])  # Directory of patches for this patient
 
         if os.path.isdir(path) and len(os.listdir(path)) != 0:
             temp_graph = []
@@ -836,7 +836,7 @@ def load_Img(form=None):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     for i in range(len(patients)):
-        path = os.path.join(dataset_dir, patients[i])  # 所有patch所在的路径
+        path = os.path.join(dataset_dir, patients[i])  # Directory of patches for this patient
 
         if os.path.isdir(path) and len(os.listdir(path)) != 0:
             temp_graph = []

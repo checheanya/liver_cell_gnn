@@ -57,11 +57,11 @@ class GNNSkipBlock(nn.Module):
         for i in range(num_layers - 1):
             d_in = dim_in if i == 0 else dim_out
             self.layers.append(GNNLayer(d_in, dim_out))
-            if use_pairnorm: # 判断是否使用PairNorm
+            if use_pairnorm:  # PairNorm on/off
                 self.layers.append(PairNorm(scale=scale))
         d_in = dim_in if num_layers == 1 else dim_out
         self.layers.append(GNNLayer(d_in, dim_out, has_act=False))
-        if num_layers > 1 and use_pairnorm: # 判断是否使用PairNorm
+        if num_layers > 1 and use_pairnorm:  # PairNorm on/off
             self.layers.append(PairNorm(scale=scale))
         self.act = act_dict[cfg.gnn.act]
         if cfg.gnn.stage_type == 'skipsum':
@@ -96,13 +96,13 @@ class GNNStackStage(nn.Module):
         for i in range(num_layers):
             d_in = dim_in if i == 0 else dim_out
             self.layers.append(GNNLayer(d_in, dim_out))
-            if use_pairnorm: # 判断是否使用PairNorm
+            if use_pairnorm:  # PairNorm on/off
                 self.layers.append(PairNorm(scale=scale))
         self.dim_out = dim_out
 
     def forward(self, batch):
 
-        # 保存经过GNN后的节点特征和节点类别
+        # Store post-GNN node features and classes
         for idx, layer in enumerate(self.layers):
             if isinstance(layer, PairNorm):
                 batch.node_feature = layer(batch.node_feature)

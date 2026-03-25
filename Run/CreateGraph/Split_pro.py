@@ -49,14 +49,14 @@ def move_file(old_file_path, new_path):
 RANDOM_SEED = 42
 if __name__ == "__main__":
 
-    # 数据集的路径自己根据目标修改
+    # Adjust dataset paths as needed
     cg_path = '/data0/yuanyz/NewGraph/datasets/test'
     censor_file = '/data0/yuanyz/NewGraph/censor_with_normalized_risk.csv'
     censor_df = pd.read_csv(censor_file, usecols=['标本号', '复发'])
     
     patient_fnames = []
     patients = os.listdir(cg_path)
-    # 构建标本号到censor标记的映射
+    # Map specimen ID to censoring indicator
     censor_dict = {}
     for i, row in censor_df.iterrows():
         print(row['标本号'])
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             censor_dict[str(row['标本号'])] = 1 
         else:
             censor_dict[str(row['标本号'])] = 0
-    # 划分 censor 和 uncensor
+    # Split censored vs uncensored
     censor_list = []
     uncensor_list = []
     for patient in patients:
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         data = patient_fnames
         if len(data) != 1:
         
-            # 按比例分割数据集       
+            # Split dataset by ratio
             censor_train, censor_test = train_test_split(censor_list, test_size=0.36, random_state=RANDOM_SEED)
             censor_val, censor_test = train_test_split(censor_test, test_size=5/9, random_state=RANDOM_SEED)
             uncensor_train, uncensor_test = train_test_split(uncensor_list, test_size=0.36, random_state=RANDOM_SEED)

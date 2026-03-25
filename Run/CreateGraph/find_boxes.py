@@ -33,11 +33,11 @@ from tqdm import tqdm
 #             y = int(y)
 #             img = np.array(img)
 #             print("Finished Reading Image.")
-#             # 以 xy为左上角顶点绘制正方形滑倒img上面
+#             # Draw a square with top-left at (x,y) onto img
 #             img = cv2.rectangle(img, (y, x), (y + patch_size, x + patch_size), (255, 0, 0), 5)
 #             print("Finished Drawing Box.")
 #
-#         # 对img进行可视化
+#         # Visualize img
 #         img = Image.fromarray(img)
 #         save_path = os.path.join(save_dir, patient_id + '_' + str(len(boxes)) + '_' + label + '.png')
 #         # img.show()
@@ -69,35 +69,35 @@ def find_boxes(wsi_path, data_path, save_dir, patient_label):
             y = int(y)
             print("Finished Reading Image.")
 
-            # 计算矩形块的中心
+            # Center of the rectangular patch
             center_x = y + patch_size // 2
             center_y = x + patch_size // 2
 
-            # 填充矩形块为橘红色
-            img[x:x + patch_size, y:y + patch_size] = [255, 165, 0]  # 橘红色填充
+            # Fill patch rectangle with orange
+            img[x:x + patch_size, y:y + patch_size] = [255, 165, 0]  # Orange fill
             print("Finished Filling Rectangle with Orange-Red.")
 
-            # 画一个圆，以矩形块的中心为圆心
-            radius = patch_size // 2  # 半径等于块大小的一半
-            cv2.circle(img, (center_x, center_y), radius, (255, 165, 0), -1)  # 填充橘红色的圆
+            # Draw a circle centered on the patch
+            radius = patch_size // 2  # Radius is half the patch size
+            cv2.circle(img, (center_x, center_y), radius, (255, 165, 0), -1)  # Filled orange circle
             print("Finished Drawing Orange-Red Circle.")
 
-            # 创建从橘红色到浅蓝色的热图效果
-            start_color = np.array([255, 165, 0])  # 橘红色
-            end_color = np.array([173, 216, 230])  # 浅蓝色
-            max_radius = radius + 50  # 渐变效果的最大半径
+            # Heatmap gradient from orange to light blue
+            start_color = np.array([255, 165, 0])  # Orange
+            end_color = np.array([173, 216, 230])  # Light blue
+            max_radius = radius + 50  # Max radius for gradient
 
             for r in range(radius, max_radius):
-                alpha = (r - radius) / (max_radius - radius)  # 计算插值比例
-                color = (1 - alpha) * start_color + alpha * end_color  # 插值颜色
-                color = tuple(map(int, color))  # 转换为整数
-                cv2.circle(img, (center_x, center_y), r, color, 2)  # 绘制圆形
+                alpha = (r - radius) / (max_radius - radius)  # Interpolation weight
+                color = (1 - alpha) * start_color + alpha * end_color  # Interpolated color
+                color = tuple(map(int, color))  # Cast to int
+                cv2.circle(img, (center_x, center_y), r, color, 2)  # Draw circle
             print("Finished Creating Gradient Effect.")
 
 
-        # 为img增加圆
+        # Add circles to img
 
-        # 保存结果图像
+        # Save result image
         img = Image.fromarray(img)
         save_path = os.path.join(save_dir, patient_id + '_' + str(len(boxes)) + '_' + label + '.png')
         img.save(save_path)

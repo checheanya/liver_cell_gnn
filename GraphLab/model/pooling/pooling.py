@@ -62,7 +62,7 @@ def global_add_pool(x, batch, id=None, size=None):
     size = batch.max().item() + 1 if size is None else size
     if cfg.dataset.transform == 'ego':
         # if torch.any(torch.isnan(batch)):
-        #     batch[torch.isnan(batch)] = 0  # 替换 batch 中的 NaN 值为 0
+        #     batch[torch.isnan(batch)] = 0  # Replace NaNs in batch with 0
         x = torch.index_select(x, dim=0, index=id)
         batch = torch.index_select(batch, dim=0, index=id)
     return scatter(x, batch, dim=0, dim_size=size, reduce='add')
@@ -131,27 +131,27 @@ def patch_mean_pool(model, x, batch, patch_id=None, id=None, size=None, model2=N
     img_bias = 0
     batch_feature = torch.tensor([]).to(torch.device(cfg.device))
     if patch_id is not None:
-        # 遍历所有的病人
+        # Iterate over patients
         for i in range(size):
 
-            # 选择出单个病人对应的索引
+            # Indices for one patient
             index = torch.where(batch == i)
 
-            # 提取单个病人所有patch的特征
+            # Features for all patches of this patient
             patient = torch.index_select(x, dim=0, index=index[0])
 
-            # 找到patch的数目
+            # Number of patches
             patch_size = patch_id[bias:bias + patient.shape[0], 0].long().max().item() + 1
             # if model is not None and model.training :
             #     num_features = random.randint(1, patient.shape[0])
-            #     # 生成一个随机数，表示要选择哪些特征
+            #     # Random which features to keep
             #     start_idx = random.randint(0, patient.shape[0] - num_features)
-            #     # 从 patch_id 中取出一段连续的小块的 ID，并将其转换为整型
+            #     # Contiguous slice of patch IDs as int
             #     selected_features = patch_id[bias:bias + num_features, 0].long()
-            #     # 从上面的一段小块中选出随机选择的特征
+            #     # Random subset of features from that slice
             #     patient = patient[start_idx:start_idx + num_features]
             #
-            #     #更新patch_size的大小
+            #     # Update patch_size
             #     patch_size = selected_features.max().item()+1
             #
             #     patch_feature = scatter(patient, selected_features, dim=0,
@@ -161,7 +161,7 @@ def patch_mean_pool(model, x, batch, patch_id=None, id=None, size=None, model2=N
 
             # patient_img
 
-            # 对每个patch内的细胞进行mean pooling
+            # Mean pooling over cells in each patch
             patch_feature = scatter(patient, patch_id[bias:bias + patient.shape[0], 0].long(), dim=0,
                                     dim_size=patch_size, reduce='mean')
 
@@ -184,7 +184,7 @@ def patch_mean_pool(model, x, batch, patch_id=None, id=None, size=None, model2=N
                 # img_feature = img_feature*0.0
                 patch_feature = torch.cat((patch_feature, img_feature), dim=1)
             bias += patient.shape[0]
-            # 计算邻接矩阵并将其转换为边缘索引
+            # Adjacency matrix -> edge_index
             if cfg.model.rnn_layer == 'HyperGraph':
                 hg = dhg.Hypergraph.from_feature_kNN(patch_feature, k=5)
                 patch_feature = model(patch_feature, hg)

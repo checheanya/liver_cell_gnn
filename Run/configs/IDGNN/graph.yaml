@@ -10,7 +10,7 @@ dataset:
   multitasking: False
   feature_dim: 6
   subtaskdim: 7
-  augment_split: 1   #将一个病人分为多少子病人
+  augment_split: 1   # How many sub-patients to split one patient into
   task_type: regression  #classification2regression  # regression
   transductive: False
   split: [ 0.8,0.1,0.1 ]
@@ -22,9 +22,9 @@ dataset:
   augment_label_dims: 0
   transform: None
 train:
-  auto_resume: False    #是否使用预训练
+  auto_resume: False    # Whether to use pretrained weights
   epoch_resume: 999
-  #resume_path: /data/yuanyz/results/test/patientDelaunay256412/dglmulty/attention_msg1/graph_grid_graph/graph-l_mp=2-pairnorm=True-dropout=0.8-dim=24-stage=stack-pool=Transformer-name=patientDelaunay256412/42/   #预训练模型的路径
+  #resume_path: /data/yuanyz/results/test/patientDelaunay256412/dglmulty/attention_msg1/graph_grid_graph/graph-l_mp=2-pairnorm=True-dropout=0.8-dim=24-stage=stack-pool=Transformer-name=patientDelaunay256412/42/   # Path to pretrained checkpoint
   #resume_path: /data/yuanyz/results/test/patientDelaunay256412/dglmulty/attention_msg1/graph_grid_graph/graph-l_mp=10-pairnorm=True-dropout=0.7-dim=16-stage=stack-pool=GAT-name=patientDelaunay256412/42/
 #  resume_path: /data/yuanyz/results/test/patientDelaunay256412/dglmulty/patientminimum_spanning_tree256412_only_ration/graph/42
 

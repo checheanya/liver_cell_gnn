@@ -267,8 +267,8 @@ count = 0
 def transform_to_DeepSnap(Graphs, labels=None, Flag=1):
     '''
 
-    :param Graphs: 表示带有标签的DGL图
-    :Flag: 2代表dglmulty  1代表 dglbatch   0代表dgl不需要labels
+    :param Graphs: DGL graphs with labels
+    :param Flag: 2=dglmulty, 1=dglbatch, 0=dgl without labels
     :return: DeepSnap Graph
     '''
     if Flag == 1:
@@ -314,7 +314,7 @@ def create_dataset():
             graphs, labels = load_dataset(form)
             if graphs is not None:
                 graphs = transform_to_DeepSnap(graphs, labels=labels, Flag=Flag)
-        print("加载{}完成".format(form))
+        print("Finished loading split: {}".format(form))
     return datasets
 
 
@@ -356,7 +356,7 @@ def load_dgl(form=None):
         return None
     patients = os.listdir(dataset_dir)  # CellGraph/patient
     for i in range(len(patients)):
-        path = os.path.join(dataset_dir, patients[i])  # 所有patch所在的路径
+        path = os.path.join(dataset_dir, patients[i])  # Directory of patches for this patient
         if os.path.isdir(path) and len(os.listdir(path)) != 0:
             patch_name = os.listdir(path)
             for item in patch_name:
@@ -387,7 +387,7 @@ def load_dgl_new(form=None):
         return None, None
     patients = os.listdir(dataset_dir)  # CellGraph/patient
     for i in range(len(patients)):
-        path = os.path.join(dataset_dir, patients[i])  # 所有patch所在的路径
+        path = os.path.join(dataset_dir, patients[i])  # Directory of patches for this patient
         if os.path.isdir(path) and len(os.listdir(path)) != 0:
             temp_graph = []
             label = None

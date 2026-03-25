@@ -27,10 +27,10 @@ def _get_pred_int(pred_score):
 
 
 def convert_to_one_hot(x, num_classes):
-    # 创建一个全0张量
+    # All-zero tensor
     one_hot = torch.zeros((len(x), num_classes)).to(torch.device(cfg.device))
 
-    # 遍历张量，将对应位置置为1
+    # Set one-hot entries to 1
     for i in range(len(x)):
         one_hot[i, int(x[i]) - 1] = 1
 
@@ -50,8 +50,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler):
         loss, pred_score = compute_loss(model, pred, true)
         subtask_loss = torch.tensor(0., dtype=loss.dtype).to(torch.device(cfg.device))
         if cfg.dataset.multitasking:
-            # 定义损失函数
-            # 调用损失函数
+            # Subtask loss: one-hot targets then criterion
             target = F.one_hot(batch.node_label.view(-1).long() - 1, cfg.dataset.subtaskdim)
             subtask_loss = criterion(batch.node_level_feature, target.float())
             pred_int = _get_pred_int(batch.node_level_feature)
