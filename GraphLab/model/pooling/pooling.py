@@ -7,7 +7,7 @@ from torch_geometric.nn import GATConv, TopKPooling
 from torch_geometric.nn.inits import glorot
 from torch_scatter import scatter
 import GraphLab.register as register
-from DeepHypergraph import dhg
+import dhg
 from GraphLab.config import cfg
 import timm
 

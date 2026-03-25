@@ -1,4 +1,4 @@
-import DeepHypergraph.dhg as dhg
+import dhg
 import torch
 import torch.nn as nn
 
