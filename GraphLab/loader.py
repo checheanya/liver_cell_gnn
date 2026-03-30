@@ -160,26 +160,31 @@ def load_dataset(form=None):
         graphs = func(format, name, dataset_dir)
         if graphs is not None:
             return graphs
-    # Load from Pytorch Geometric dataset
+    # Format dispatch with brief annotation for each format:
+
+    # PyG: Load from PyTorch Geometric datasets (standard benchmark datasets in PyG format)
     if format == 'PyG':
         graphs = load_pyg(name, dataset_dir)
-    # Load from networkx formatted data
-    # todo: clean nx dataloader
+    # nx: Load from networkx pickled graphs (serialized with pickle or gpickle)
     elif format == 'nx':
         graphs = load_nx(name, dataset_dir)
         # for graph in graphs:
         #     nx.draw(graph)
-    # Load from OGB formatted data
+    # dgl: Load from DGLGraph format (DGL built-in serialization of graphs)
     elif format == 'dgl':
         graphs = load_dgl(form)
+    # deepsnap: Load via DeepSNAP wrapper (usually networkx or DGL graphs with extra features)
     elif format == 'deepsnap':
         graphs = load_deepsnap(form)
+    # dglbatch: Custom format for batched DGL graphs and labels, loads multiple graphs as batches
     elif format == 'dglbatch':
         graphs, labels = load_dgl_new(form)
         return graphs, labels
+    # dglmulty / LoadImg: Multi-patch-per-patient DGL format, with labels and patch path, for cell graph datasets
     elif format == 'dglmulty' or format == 'LoadImg':
         graphs, labels, patch_path = load_dgl_Multy(form)
         return graphs, labels, patch_path
+    # OGB: Loads large graph benchmarks from the OGB (Open Graph Benchmark) suite, e.g. ogbg-molhiv
     elif cfg.dataset.format == 'OGB':
         if cfg.dataset.name == 'ogbg-molhiv':
             dataset = PygGraphPropPredDataset(name=cfg.dataset.name)

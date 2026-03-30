@@ -8,26 +8,26 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--label_data_path',
                         type=str,
-                        default='/data0/pathology/all_patients',
+                        default='../my_runs/test_data/annotations',
                         help="all labeled path")
 
     parser.add_argument('--graph_out_path',
                         type=str,
-                        default='/data/yuanyz/datasets/SLIC')
+                        default='../my_runs/results/graphs')
 
     parser.add_argument('--WSI_data_path',
                         type=str,
-                        default='/data0/pathology/all_patients',
+                        default='../my_runs/test_data/raw_svs',
                         help='original WSI path')
 
     parser.add_argument('--follow_up_data',
                         type=str,
-                        default='/data0/pathology/follow_up_data.txt',
+                        default='../my_runs/test_data/follow_up_data',
                         help='follow up data path')
 
     parser.add_argument('--checkpoints_dir',
                         type=str,
-                        default='../results',
+                        default='../my_runs/results/checkpoints',
                         help='models are saved here')
 
     parser.add_argument('--method',
