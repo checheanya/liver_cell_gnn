@@ -53,7 +53,7 @@ def load_txt(LabelDataPath, Patient):
     inTXTDataPath = os.path.join(LabelDataPath, Patient, Patient + '.txt')
     inTXTData = pd.read_csv(inTXTDataPath, sep='\t', engine='python', encoding='utf-8')
 
-    inTXTData['Class'] = replace_with_best_match_vectorized(inTXTData['Class'])
+    inTXTData['Classification'] = replace_with_best_match_vectorized(inTXTData['Classification'])
     print('Finished load_txt')
     return inTXTData
 
@@ -65,7 +65,7 @@ def Distance(x, y):
 def polymerization(inTXTData, tr):
     final_data = pd.DataFrame(columns=inTXTData.columns)
     for type in CellTypes:
-        data = inTXTData.loc[inTXTData['Class'] == type]
+        data = inTXTData.loc[inTXTData['Classification'] == type]
         if data.shape[0] == 0:
             continue
         data = data.reset_index(drop=True)
@@ -620,8 +620,8 @@ if __name__ == '__main__':
     Patients = os.listdir(LabelDataPath)
     Patients.sort()
     # FeaturesMinAndMax = np.loadtxt('MinAndMax.csv')
-    result_dataset = '/data/yuanyz/datasets/32_patches_graphs'
-    Patients = os.listdir('/data0/yuanyz/NewGraph/datasets/patientminimum_spanning_tree256412/test')
+    result_dataset = '../my_runs/results/graphs'
+    Patients = os.listdir('../my_runs/test_data/annotations')
     for Patient in tqdm(Patients):
         if os.path.exists(os.path.join(result_dataset, Patient)) is False:
             os.makedirs(os.path.join(result_dataset, Patient))
@@ -667,5 +667,5 @@ if __name__ == '__main__':
             continue
 
     # Visualization (optional)
-    # Graph = dgl.load_graphs(os.path.join(OutPath, 'Tumor cells.bin'))[0][0]
-    # graph_visualize(box, WSIImage, Graph)
+    Graph = dgl.load_graphs(os.path.join(OutPath, 'Tumor cells.bin'))[0][0]
+    graph_visualize(box, WSIImage, Graph)

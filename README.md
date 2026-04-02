@@ -80,7 +80,8 @@ The commands below assume you work from the **`Run/`** directory (so `main.py` c
 ### Prerequisites
 
 - **Python 3** with **PyTorch** (CUDA recommended).
-- Core libraries used by the project include: **DGL**, **PyTorch Geometric** (via `GraphLab/loader.py`), **DeepSNAP**, **yacs**, **lifelines**, **scikit-learn**, **pandas**, **numpy**, **OpenSlide** (`openslide-python`), **OpenCV**, **Pillow**, **tqdm**, **histocartography**, **fuzzywuzzy**, **networkx**, **SciPy**. Install what you need for your environment; there is no checked-in `requirements.txt`, so resolve import errors as they appear.
+- Core libraries used by the project include: **DGL**, **PyTorch Geometric** (via `GraphLab/loader.py`), **DeepSNAP**, **yacs**, **lifelines**, **scikit-learn**, **pandas**, **numpy**, **OpenSlide** (`openslide-python`), **OpenCV**, **Pillow**, **tqdm**, **histocartography**, **fuzzywuzzy**, **networkx**, **SciPy**. 
+- See `environment_colab.yml` for requirements that were used for Colab run with CUDA 12.8 and pytorch 2.4
 
 ### 1. Data preparation
 
@@ -92,7 +93,7 @@ The graph builder (`Run/CreateGraph/CreateMyGraph.py`) expects:
 |------|--------|
 | **Cell table** | `{label_data_path}/{PatientID}/{PatientID}.txt` — tab-separated export of cell morphology / positions (see script for column usage). |
 | **Label images** | `{PatientID}-CellLabels.png`, `{PatientID}-NucleiLabels.png` under the same patient folder. |
-| **WSI** | `{WSI_data_path}/{PatientID}/{PatientID}.ndpi` (OpenSlide). |
+| **WSI** | `{WSI_data_path}/{PatientID}/{PatientID}.{ndpi,svs}` (OpenSlide). |
 | **Follow-up / outcomes** | A tab-separated file (see `--follow_up_data` in `Run/CreateGraph/options.py`) whose **column names must match** what the code indexes (e.g. specimen ID, recurrence, survival columns as used in `CreateMyGraph.py`). |
 
 Cell types in the TXT are fuzzy-matched to the `CellTypes` list in `CreateMyGraph.py`.
